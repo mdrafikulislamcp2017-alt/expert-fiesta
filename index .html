@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Auto Data & Number Copy</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+<style>
+body {
+    font-family: Arial, sans-serif;
+    background: #0e1726;
+    color: #fff;
+    margin: 0;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+}
+.container {
+    background: #1a2333;
+    padding: 15px 20px;
+    border-radius: 15px;
+    width: 95%;
+    max-width: 600px;
+    box-sizing: border-box;
+    text-align: center;
+}
+.data-text {
+    font-size: 1.05rem;
+    margin: 15px 0;
+    word-break: break-word;
+    min-height: 2rem;
+}
+.stats-container {
+    display: flex;
+    justify-content: space-around;
+    margin-bottom: 12px;
+    flex-wrap: wrap;
+}
+.stats {
+    font-size: 0.9rem;
+    color: #ccc;
+    margin: 4px;
+}
+.button-container {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    margin-top: 10px;
+    flex-wrap: wrap;
+}
+button {
+    cursor: pointer;
+    transition: 0.15s;
+    border: none;
+    outline: none;
+}
+.icon-btn {
+    width:48px; height:48px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:1.2rem; color:#fff;
+}
+.username-btn { background:#007bff; }
+.gmail-btn { background:#28a745; color:#fff; }
+.name-btn { background:#ffc107; color:#333; }
+
+textarea {
+    width: 100%;
+    height: 90px;
+    border-radius:5px;
+    border:none;
+    padding:8px;
+    resize:none;
+    margin-bottom:6px;
+    box-sizing:border-box;
+}
+.numbers-list {
+    display:flex;
+    flex-wrap:wrap;
+    gap:6px;
+    margin-top:6px;
+}
+.numbers-list button {
+    background:#007bff;
+    padding:6px 10px;
+    font-size:0.85rem;
+    border-radius:6px;
+    border:none;
+    cursor:pointer;
+    color:#fff;
+}
+.numbers-list button.copied {
+    background-color: #00ffae;
+    color: #000;
+    font-weight: bold;
+}
+.control-buttons {
+    display:flex;
+    gap:6px;
+    flex-wrap:wrap;
+    margin-bottom:6px;
+}
+.control-buttons button {
+    padding:6px 10px;
+    margin:2px;
+    border:none;
+    border-radius:6px;
+    background:#28a745;
+    color:#fff;
+    cursor:pointer;
+    font-size:0.9rem;
+}
+
+/* ICON BUTTON ANIMATION */
+.icon-btn {
+    width:48px; height:48px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:1.2rem; color:#fff;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.icon-btn:hover {
+    transform: scale(1.2);
+    box-shadow: 0 0 10px rgba(255,255,255,0.5);
+}
+
+.icon-btn:active {
+    transform: scale(1.1);
+    box-shadow: 0 0 5px rgba(255,255,255,0.7);
+}
+
+
+@media (max-width:480px){
+    .icon-btn { width:44px; height:44px; font-size:1rem; }
+}
+
+</style>
+</head>
+<body>
+
+<!-- AUTO DATA SECTION -->
+<div class="container" id="autoDataContainer">
+    <div class="stats-container">
+        <div id="usernameStats" class="stats"><i class="fa-solid fa-user"></i> 0/0</div>
+        <div id="gmailStats" class="stats"><i class="fa-solid fa-envelope"></i> 0/0</div>
+        <div id="nameStats" class="stats"><i class="fa-solid fa-id-badge"></i> 0/0</div>
+    </div>
+
+    <div class="data-text" id="dataText">Loading...</div>
+
+    <div class="button-container">
+        <button class="icon-btn username-btn" id="usernameBtn" title="Copy Username"><i class="fa-solid fa-user"></i></button>
+        <button class="icon-btn gmail-btn" id="gmailBtn" title="Copy Gmail"><i class="fa-solid fa-envelope"></i></button>
+        <button class="icon-btn name-btn" id="nameBtn" title="Copy Name"><i class="fa-solid fa-id-badge"></i></button>
+    </div>
+</div>
+
+<!-- NUMBER COPY SECTION -->
+<div class="container" id="numberCopyContainer">
+    <textarea id="numbersInput" placeholder="একটি নাম্বার প্রতি লাইনে লিখুন"></textarea>
+    <div class="control-buttons">
+        <button id="generateBtn">Generate</button>
+        <button id="copyAllBtn">Copy All</button>
+        <button id="clearBtn">Clear All</button>
+    </div>
+    <div class="numbers-list" id="numbersList"></div>
+</div>
+
+<script>
+// ---------------- AUTO DATA ----------------
+let data={username:[], gmail:[], name:[]};
+let used={username:new Set(), gmail:new Set(), name:new Set()};
+let totals={username:0, gmail:0, name:0};
+const dataDiv=document.getElementById("dataText");
+
+const urls={
+    username:"raw.githubusercontent.com/mdrafikulislamcp2017-alt/expert-fiesta/refs/heads/main/username.txt",
+    name:"raw.githubusercontent.com/mdrafikulislamcp2017-alt/expert-fiesta/refs/heads/main/name.txt",
+    gmail: /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent) ?
+        "https://raw.githubusercontent.com/mdrafikulislamcp2017-alt/expert-fiesta/refs/heads/main/gmail.txt" :
+        "https://raw.githubusercontent.com/mdrafikulislamcp2017-alt/expert-fiesta/refs/heads/main/gmail.txt"
+};
+
+function updateStats(type){
+    document.getElementById(`${type}Stats`).innerHTML=`<i class="fa-solid fa-${type==='username'?'user':type==='gmail'?'envelope':'id-badge'}"></i> ${used[type].size}/${totals[type]}`;
+}
+
+function showNext(type){
+    while(data[type].length && used[type].has(data[type][0])) data[type].shift();
+    if(!data[type].length){
+        dataDiv.textContent=`🎉 All ${type}s copied!`;
+    } else {
+        const preview=data[type][0].length>36?data[type][0].slice(0,36)+'...':data[type][0];
+        dataDiv.textContent=preview;
+    }
+    updateStats(type);
+}
+
+function copyData(type){
+    if(!data[type].length) return;
+    const current=data[type][0];
+    if(!used[type].has(current)){
+        navigator.clipboard.writeText(current).then(()=>{
+            used[type].add(current);
+            localStorage.setItem(`used_${type}`, JSON.stringify([...used[type]]));
+            dataDiv.textContent=`✅ Copied ${type}`;
+            setTimeout(()=>showNext(type), 300);
+        }).catch(()=>alert("❌ Copy failed"));
+    }
+}
+
+["username","gmail","name"].forEach(type=>{
+    const stored=localStorage.getItem(`used_${type}`);
+    if(stored) try{used[type]=new Set(JSON.parse(stored));}catch(e){used[type]=new Set();}
+    fetch(urls[type]).then(r=>r.text()).then(txt=>{
+        data[type]=txt.split(/\r?\n/).map(l=>l.trim()).filter(l=>l!=="");
+        totals[type]=data[type].length;
+        showNext(type);
+    }).catch(err=>{console.error(err); dataDiv.textContent=`❌ Failed to load ${type}`; totals[type]=0; updateStats(type);});
+    document.getElementById(`${type}Btn`).onclick=()=>copyData(type);
+});
+
+// ---------------- NUMBER COPY ----------------
+let numbersArray=[];
+const numbersList=document.getElementById("numbersList");
+
+document.getElementById("generateBtn").onclick=()=>{
+    const input=document.getElementById("numbersInput").value;
+    const numbers=input.split(/\r?\n/).map(n=>n.trim()).filter(n=>n!=="");
+    numbersArray=numbers.map(n=>n.startsWith("+")?n:'+'+n);
+    numbersList.innerHTML="";
+    numbersArray.forEach((num,index)=>{
+        const btn=document.createElement("button");
+        btn.textContent=num;
+        btn.onclick=()=>{
+            navigator.clipboard.writeText(num).then(()=>{
+                btn.classList.add("copied"); // change color
+            }).catch(()=>{
+                const t=document.createElement("textarea"); t.value=num; document.body.appendChild(t); t.select();
+                try{document.execCommand("copy"); btn.classList.add("copied");}catch(e){alert("Copy failed");}
+                document.body.removeChild(t);
+            });
+        };
+        numbersList.appendChild(btn);
+    });
+};
+
+document.getElementById("copyAllBtn").onclick=()=>{
+    if(!numbersArray.length) return;
+    const text=numbersArray.join("\n");
+    navigator.clipboard.writeText(text).then(()=>{
+        document.querySelectorAll("#numbersList button").forEach(btn=>btn.classList.add("copied"));
+        alert("✅ All numbers copied!");
+    }).catch(()=>alert("❌ Copy failed"));
+};
+
+document.getElementById("clearBtn").onclick=()=>{
+    numbersArray=[]; numbersList.innerHTML=""; document.getElementById("numbersInput").value="";
+};
+</script>
+
+</body>
+</html>
